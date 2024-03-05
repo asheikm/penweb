@@ -1,12 +1,13 @@
 package main
 
 import (
-	"encoding/json"
-	"fmt"
-	"net/http"
+	"penweb/db"
+	"penweb/handlers"
+	"penweb/routes"
+	"penweb/services"
 
 	"github.com/gin-gonic/gin"
-	"github.com/parnurzeal/gorequest"
+	"github.com/rs/zerolog/log"
 )
 
 type ZAPRequest struct {
@@ -14,46 +15,21 @@ type ZAPRequest struct {
 }
 
 func main() {
-	r := gin.Default()
+	log.Info().Msg("Scan gin router initialized")
+	r := gin.New()
+	log.Info().Msg("Scan mongo db initialized")
+	db.InitDB()
 
-	r.POST("/scan", func(c *gin.Context) {
-		// Parse the JSON request body
-		var zapRequest ZAPRequest
-		if err := c.BindJSON(&zapRequest); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		}
+	scanService := services.NewDbScanService(db.DB)
+	scanHandler := handlers.NewScanHandler(scanService)
+	// r.Use(ginLogger())
 
-		// Convert the struct to JSON
-		zapRequestJSON, err := json.Marshal(zapRequest)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal Server Error"})
-			return
-		}
+	v1 := r.Group("/api/v1")
 
-		// Make a POST request to the ZAP API to start the scan
-		resp, _, errs := gorequest.New().
-			Post("http://localhost:8080/JSON/ascan/action/scan/?apikey=&zapapiformat=JSON&formMethod=POST").
-			Send(string(zapRequestJSON)).
-			End()
-
-		if len(errs) > 0 {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error making request"})
-			return
-		}
-
-		// Check if the request was successful
-		if resp.StatusCode != http.StatusOK {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error starting scan"})
-			return
-		}
-
-		// Return success message
-		c.JSON(http.StatusOK, gin.H{"message": "Scan started successfully"})
-	})
-
-	// Run the server
-	if err := r.Run(":8081"); err != nil {
-		fmt.Println("Error starting server:", err)
+	routes := routes.GetRoutes(scanHandler)
+	for _, route := range routes {
+		v1.Handle(route.Method, route.Path, route.HandlerFunc)
 	}
+
+	r.Run(":8081")
 }
