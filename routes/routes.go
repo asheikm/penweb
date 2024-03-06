@@ -22,7 +22,7 @@ func GetRoutes(scanHandler *handlers.ScanHandler) []Route {
 		{
 			Method:      "GET",
 			Path:        "/scan/result",
-			HandlerFunc: scanHandler.GetComplatedScanResult,
+			HandlerFunc: scanHandler.GetCompletedScanResult,
 		},
 	}
 	return routes

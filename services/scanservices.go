@@ -1,7 +1,14 @@
 package services
 
 import (
+	"bytes"
+	"context"
+	"encoding/json"
+	"errors"
+	"net/http"
 	"penweb/models"
+
+	"go.mongodb.org/mongo-driver/bson"
 
 	//"github.com/rs/zerolog/log"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -9,7 +16,7 @@ import (
 
 type ScanService interface {
 	PerformScan(*models.ScanRequest) error
-	GetCompletedScan(string) (*models.ScanResult, error)
+	GetCompletedScanResult(string) (*models.ScanResult, error)
 }
 
 type dbScanService struct {
@@ -21,11 +28,33 @@ func NewDbScanService(db *mongo.Database) ScanService {
 }
 
 func (r *dbScanService) PerformScan(s *models.ScanRequest) error {
-	return nil
+	payload, err := json.Marshal(s)
+	if err != nil {
+		return err
+	}
 
+	resp, err := http.Post("http://owasp-api-service/start-scan", "application/json", bytes.NewBuffer(payload))
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return errors.New("failed to start scan")
+	}
+
+	return nil
 }
 
-func (r *dbScanService) GetCompletedScan(scanId string) (*models.ScanResult, error) {
-	return nil, nil
+func (r *dbScanService) GetCompletedScanResult(scanID string) (*models.ScanResult, error) {
+	collection := r.db.Collection("scan_results")
 
+	filter := bson.M{"scan_id": scanID}
+	var result models.ScanResult
+	err := collection.FindOne(context.Background(), filter).Decode(&result)
+	if err != nil {
+		return nil, err
+	}
+
+	return &result, nil
 }

@@ -10,10 +10,6 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-type ZAPRequest struct {
-	URL string `json:"url"`
-}
-
 func main() {
 	log.Info().Msg("Scan gin router initialized")
 	r := gin.New()

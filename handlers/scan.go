@@ -35,6 +35,13 @@ func (h *ScanHandler) Scan(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Scan Started..."})
 }
 
-func (h *ScanHandler) GetComplatedScanResult(c *gin.Context) {
+func (h *ScanHandler) GetCompletedScanResult(c *gin.Context) {
+	scanID := c.Param("scanID")
+	result, err := h.ScanService.GetCompletedScanResult(scanID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
 
+	c.JSON(http.StatusOK, result)
 }
