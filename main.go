@@ -21,7 +21,7 @@ func main() {
 	// r.Use(ginLogger())
 
 	v1 := r.Group("/api/v1")
-
+	log.Info().Msg("Initializing routes...")
 	routes := routes.GetRoutes(scanHandler)
 	for _, route := range routes {
 		v1.Handle(route.Method, route.Path, route.HandlerFunc)

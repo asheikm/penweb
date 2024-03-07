@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"time"
 
 	"github.com/rs/zerolog/log"
 
@@ -28,4 +29,42 @@ func InitDB() {
 
 	// Set the database
 	DB = client.Database("restweb")
+
+	// Check if the database already exists
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	err = DB.Client().Ping(ctx, nil)
+	if err != nil {
+		log.Fatal().Msgf("Database 'restweb' does not exist: %v", err)
+	}
+
+	log.Info().Msg("Database 'restweb' already exists")
+
+	// Create a collection in the database
+	scancollection := DB.Collection("restscan")
+
+	exists, err := CollectionExists(context.Background(), DB, "restscan")
+	if err != nil {
+		log.Fatal().Msgf("Error occured while checking collection: %v", err)
+	}
+
+	if exists {
+		log.Info().Msg("Collection 'restscan' exists")
+	} else {
+		log.Info().Msg("Collection 'restscan' does not exist")
+	}
+}
+
+func CollectionExists(ctx context.Context, db *mongo.Database, collectionName string) (bool, error) {
+	collectionNames, err := db.ListCollectionNames(ctx, nil)
+	if err != nil {
+		return false, err
+	}
+	for _, name := range collectionNames {
+		if name == collectionName {
+			return true, nil
+		}
+	}
+	return false, nil
 }
