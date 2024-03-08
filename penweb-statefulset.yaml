@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: penweb-statefulset
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: penweb
+  serviceName: penweb
+  template:
+    metadata:
+      labels:
+        app: penweb
+    spec:
+      containers:
+      - name: penweb-container
+        image: penweb-image:latest
+        ports:
+        - containerPort: 8082
+  volumeClaimTemplates:
+  - metadata:
+      name: storage
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 1Gi
